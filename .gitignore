@@ -1,0 +1,65 @@
+# ── Python ────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Extensiones compiladas (mhps, P4J, etc.) — específicas de cada máquina/SO,
+# se recompilan solas al hacer `pip install` (ver environment.yml)
+*.so
+*.pyd
+
+# ── Jupyter ───────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── Editor / SO ──────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# ── Entornos virtuales (por si se crean sueltos, fuera de conda) ──────────
+.venv/
+venv/
+env/
+
+# ── Datos y salidas regenerables ──────────────────────────────────────────
+# Se ignora el CONTENIDO de estas carpetas (las generan los scripts), pero
+# se mantiene la carpeta vacía en el repo vía .gitkeep, para que al clonar
+# no falten directorios que los scripts esperan encontrar.
+#
+# NO se ignoran (van con contenido real en el repo): data/simlibs/,
+# data/filter_profiles/, data/real/, data/unlabeled/, data/raw_features/
+# (test set real + ejecución TNS_SLSN), output/models/, output/coral/,
+# examples/, lc_classifier/ (sujeto igualmente a las reglas de arriba:
+# pycache/.so).
+
+data/simulated/*
+!data/simulated/.gitkeep
+
+data/feature_selection/*
+!data/feature_selection/.gitkeep
+
+output/plots/*
+!output/plots/.gitkeep
+
+output/figures/*
+!output/figures/.gitkeep
+
+output/oof/*
+!output/oof/.gitkeep
+
+output/real_eval/*
+!output/real_eval/.gitkeep
+
+output/classify/*
+!output/classify/.gitkeep
+
+# Modelos pesados (>50MB) - se distribuyen como asset del Release, no en git
+output/models/model_*_hier.pkl
+output/models/model_*_Transient.pkl
+output/models/model_*_Stochastic.pkl
+output/models/model_*_Periodic.pkl
+output/models/shap_values_C.pkl

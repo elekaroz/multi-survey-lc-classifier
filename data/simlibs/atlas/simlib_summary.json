@@ -1,0 +1,22 @@
+{
+  "c_cadence_mean": 1.8502912858143952,
+  "c_cadence_std": 5.308354750759827,
+  "c_cadence_p16": 0.00322799999412382,
+  "c_cadence_p50": 0.01014500000019325,
+  "c_cadence_p84": 2.84920812000346,
+  "c_skynoise_mean": 22.768807491849913,
+  "c_skynoise_std": 56.351539102962455,
+  "c_skynoise_p16": 9.0,
+  "c_skynoise_p50": 11.0,
+  "c_skynoise_p84": 21.0,
+  "o_cadence_mean": 0.8466684969102656,
+  "o_cadence_std": 2.463187901046492,
+  "o_cadence_p16": 0.003236000004108064,
+  "o_cadence_p50": 0.00908250000065891,
+  "o_cadence_p84": 1.9048526000013228,
+  "o_skynoise_mean": 37.583702182481474,
+  "o_skynoise_std": 76.87307923659938,
+  "o_skynoise_p16": 12.0,
+  "o_skynoise_p50": 20.0,
+  "o_skynoise_p84": 41.0
+}

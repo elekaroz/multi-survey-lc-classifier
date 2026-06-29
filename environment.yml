@@ -1,0 +1,96 @@
+name: tfm
+channels:
+  - conda-forge
+  - defaults
+
+# ──────────────────────────────────────────────────────────────────────────
+# Construido a partir de las dependencias reales usadas en:
+#   - los 8 scripts ya limpiados de model_training/ (model_training_functions.py,
+#     model_training_full.py, model_training_adapted.py, feature_selection.py,
+#     bootstrap_confmat.py, eval_real_testset.py, classify.py, xmatch.py,
+#     visualize_results.ipynb)
+#   - los 9 scripts + notebook ya limpiados de simulations/ (models.py,
+#     magnetar_source.py, survey.py, formatter.py, features_config.py,
+#     simulate_bandpasses.py, generate.py, simulate_atlas_only.py,
+#     visualize_atlas_lightcurves.ipynb)
+#   - los 2 scripts de adquisición ya limpiados (ztf_lsst.py, atlas.py)
+#   - contrastado contra `conda env export --from-history` + `pip list
+#     --not-required` del entorno real de desarrollo (tfm), para no
+#     arrastrar dependencias de pruebas que no llegaron al pipeline final.
+#
+# lc_classifier (fork de ALeRCE, ver README § Instalación) se instala en modo
+# editable desde el propio repo, no desde PyPI — conserva el setup.py
+# original de ALeRCE sin modificar.
+#
+# Confirmado que NO hace falta (quitado tras revisar el entorno real):
+#   - babamul, filters.py: no los importa ningún script ya limpiado.
+#   - lasair, ztfquery: usados una sola vez para construir
+#     data/simlibs/ztf/ztf_fieldlog.parquet (ya incluido en el repo); no son
+#     dependencia de ningún script que se ejecute como parte del pipeline.
+#   - ydata-profiling (y su cola de dependencias transitivas: isoduration,
+#     jsonpointer, rfc3987-syntax, tinycss2, uri-template, webcolors, fqdn):
+#     era solo para un reporte EDA puntual, no se usa en ningún script.
+#
+# Notas de compatibilidad (ver limitaciones documentadas en README.md):
+#   - scikit-learn fijado a 1.1.3 porque BalancedRandomForestClassifier
+#     (imbalanced-learn 0.9.1) se entrenó y calibró con esa versión;
+#     versiones posteriores a 1.2.2 cambian la API interna de calibración
+#     usada en model_training_functions.py.
+#   - numpy fijado a 1.26.4 por compatibilidad con esa combinación de
+#     scikit-learn/imbalanced-learn.
+#   - pandas fijado a 3.0.3: combinación poco habitual con scikit-learn tan
+#     antiguo, pero es la que se usó y se verificó en el entorno real — no
+#     dejar sin pin, podría instalarse una versión incompatible con el resto.
+#   - numba=0.60.0 + llvmlite=0.43.0 pineados juntos: son dependencias de
+#     mhps/P4J (extracción de periodo en el fork de lc_classifier) y esa
+#     combinación numba/llvmlite es frágil entre versiones; cython es
+#     necesario para compilarlos si no hay wheel precompilada disponible.
+#   - sncosmo y pyarrow añadidos al limpiar simulations/: sncosmo es la
+#     dependencia de modelado (SALT2/Nugent/MagnetarSource/bandas ATLAS) en
+#     models.py, magnetar_source.py y simulate_atlas_only.py; pyarrow es el
+#     motor de parquet que generate.py y survey.py necesitan en tiempo de
+#     ejecución (pandas no lo trae por defecto).
+#   - requests ya estaba en el entorno por xmatch.py (API de TNS); atlas.py
+#     reutiliza la misma dependencia para hablar con el servidor de
+#     fotometría forzada de ATLAS.
+#   - alerce añadido: ztf_lsst.py hace `from alerce.core import Alerce`
+#     (faltaba en una versión anterior de este fichero).
+#   - jax y tensorflow (+ keras, h5py, grpcio, tensorboard... que arrastran
+#     por dependencia transitiva de conda) confirmados en uso por el
+#     pipeline final.
+#   - mhps y P4J: instalación editable desde los repos git de ALeRCE
+#     (`-e git+https://git@github.com/alercebroker/{mhps,P4J}#egg=...`),
+#     tal y como los pide el propio requirements.txt de lc_classifier — no
+#     son paquetes de PyPI con número de versión fijo.
+# ──────────────────────────────────────────────────────────────────────────
+
+dependencies:
+  - python=3.11
+  - numpy=1.26.4
+  - pandas=3.0.3
+  - pyarrow
+  - scipy
+  - matplotlib
+  - scikit-learn=1.1.3
+  - openpyxl
+  - requests
+  - astropy
+  - tqdm
+  - jupyterlab
+  - ipywidgets
+  - statsmodels
+  - numba=0.60.0
+  - llvmlite=0.43.0
+  - cython
+  - jax=0.4.25
+  - tensorflow
+  - pip
+  - pip:
+      - imbalanced-learn==0.9.1
+      - shap
+      - astroquery
+      - sncosmo
+      - alerce==2.2.1
+      - -e git+https://git@github.com/alercebroker/mhps#egg=mhps
+      - -e git+https://git@github.com/alercebroker/P4J#egg=P4J
+      - -e ./lc_classifier
