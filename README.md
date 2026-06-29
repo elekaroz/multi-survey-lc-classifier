@@ -62,6 +62,17 @@ conda activate tfm
 repositorio (`lc_classifier/`), en modo editable. No requiere ningún paso aparte. Ha sido modificado
 para que funcione con las bandas de LSST y ATLAS.
 
+Algunos modelos entrenados (>50 MB) no van en el repositorio principal por tamaño. Para
+poder usar `classify.py` con los 5 modelos base, hay que descargar el
+[Release](https://github.com/elekaroz/multi-survey-lc-classifier/releases/tag/v1.0)
+y descomprimirlo en `output/models/` (ver detalle en
+[Estructura de carpetas](#estructura-de-carpetas)):
+
+```bash
+wget https://github.com/elekaroz/multi-survey-lc-classifier/releases/download/v1.0/modelos_pesados.zip
+unzip modelos_pesados.zip -d output/models/
+```
+
 ## Estructura de carpetas
 
 ```
@@ -119,6 +130,21 @@ Transient/Stochastic/Periodic, ver `model_training_functions.py`):
 - `meta_model.pkl`: metamodelo del ensemble **adaptado** (el que usa `classify.py --use-meta` por defecto)
 - `meta_model_baseline.pkl`: metamodelo del ensemble **baseline** (`model_training_full.py`), útil para `eval_real_testset.py --compare-metamodels`
 - `shap_values_{A,B,C,D,E}.pkl`, `results_summary.xlsx`, `model_comparison_summary.csv`, `test_predictions.pkl`
+
+**Nota sobre ficheros pesados (>50 MB)**: `model_{A,B,C,D,E}_hier.pkl`,
+`model_{A,B,C,D,E}_{Transient,Stochastic,Periodic}.pkl` y
+`shap_values_C.pkl` no van en el repositorio por tamaño (algunos superan el
+límite de 100 MB de GitHub). Se distribuyen como asset de un
+[Release](https://github.com/elekaroz/multi-survey-lc-classifier/releases/tag/v1.0):
+
+```bash
+wget https://github.com/elekaroz/multi-survey-lc-classifier/releases/download/v1.0/modelos_pesados.zip
+unzip modelos_pesados.zip -d output/models/
+```
+
+Sin estos ficheros, `classify.py` solo puede usar `--active-models` con
+los modelos cuyos `_hier.pkl` sí estén presentes — por defecto los
+necesita todos.
 
 **Ficheros reales de `output/coral/`**: `coral_modelB.pkl`, `coral_modelD.pkl`,
 y el modelo C partido por grupo de features: `coral_modelC_{ztf,lsst,atlas,diff}.pkl`.
@@ -403,8 +429,10 @@ disponibles aportan un prior uniforme al metamodelo en vez de excluirse.
 ### Probar con los datos de ejemplo
 
 El repositorio ya trae el clasificador adaptado entrenado (`output/models/`,
-`output/coral/`) y un puñado de objetos de ejemplo en `examples/`. Se
-puede probar `classify.py` sin generar ni descargar nada antes:
+`output/coral/`, salvo los `.pkl` pesados, ver
+[Instalación](#instalación)) y un puñado de objetos de ejemplo en
+`examples/`. Tras descargar el Release de modelos, se puede probar
+`classify.py` sin generar ni descargar datos nuevos:
 
 ```bash
 python classify.py --models-dir ./output/models/ --coral-dir ./output/coral/ \
