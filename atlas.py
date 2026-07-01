@@ -116,7 +116,7 @@ def apply_quality_cuts(df: pd.DataFrame, sigma_clip_flux: bool = True) -> pd.Dat
     ujy_col  = col_map.get('ujy')
     f_col    = col_map.get('f')
 
-    #1. Cortes fijos
+    #1. Cortes fijos de calidad (independientes del SNR)
     mask = pd.Series(True, index=df.index)
     if dujy_col:
         mask &= pd.to_numeric(df[dujy_col], errors='coerce') <= 4000
@@ -124,37 +124,72 @@ def apply_quality_cuts(df: pd.DataFrame, sigma_clip_flux: bool = True) -> pd.Dat
         mask &= pd.to_numeric(df[chi_col],  errors='coerce') <= 100
     df = df[mask].copy()
 
-    if df.empty or not sigma_clip_flux or f_col is None or ujy_col is None:
-        return df
 
-    #2. Rolling sigma clip por banda
-    keep = pd.Series(True, index=df.index)
-    for band in ['c', 'o']:
-        band_mask = df[f_col].str.lower() == band
-        band_idx  = df.index[band_mask]
-        if len(band_idx) < 3:
-            continue
+    if not (df.empty or not sigma_clip_flux or f_col is None or ujy_col is None):
 
-        flux   = pd.to_numeric(df.loc[band_idx, ujy_col], errors='coerce').values
-        window = 11
-        clipped_mask = np.zeros(len(flux), dtype=bool)
-
-        for i in range(len(flux)):
-            lo = max(0, i - window // 2)
-            hi = min(len(flux), i + window // 2 + 1)
-            window_flux = flux[lo:hi]
-            finite = window_flux[np.isfinite(window_flux)]
-            if len(finite) < 3:
+        #2. Rolling sigma clip por banda
+        keep = pd.Series(True, index=df.index)
+        for band in ['c', 'o']:
+            band_mask = df[f_col].str.lower() == band
+            band_idx  = df.index[band_mask]
+            if len(band_idx) < 3:
                 continue
-            clipped = astropy_sigma_clip(finite, sigma=3.0, maxiters=3)
-            mean = np.mean(clipped.data[~clipped.mask])
-            std  = np.std(clipped.data[~clipped.mask])
-            if np.isfinite(flux[i]) and std > 0 and abs(flux[i] - mean) > 3.0 * std:
-                clipped_mask[i] = True
 
-        keep.loc[band_idx] = ~clipped_mask
+            flux   = pd.to_numeric(df.loc[band_idx, ujy_col], errors='coerce').values
+            window = 11
+            clipped_mask = np.zeros(len(flux), dtype=bool)
 
-    return df[keep].copy()
+            for i in range(len(flux)):
+                lo = max(0, i - window // 2)
+                hi = min(len(flux), i + window // 2 + 1)
+                window_flux = flux[lo:hi]
+                finite = window_flux[np.isfinite(window_flux)]
+                if len(finite) < 3:
+                    continue
+                clipped = astropy_sigma_clip(finite, sigma=3.0, maxiters=3)
+                mean = np.mean(clipped.data[~clipped.mask])
+                std  = np.std(clipped.data[~clipped.mask])
+                if np.isfinite(flux[i]) and std > 0 and abs(flux[i] - mean) > 3.0 * std:
+                    clipped_mask[i] = True
+
+            keep.loc[band_idx] = ~clipped_mask
+
+        df = df[keep].copy()
+
+    #3. Promedio ponderado por epoca (floor MJD) y banda
+    mjd_col = next((c for c in df.columns if c.lower() == 'mjd'), None)
+    if not df.empty and mjd_col and ujy_col and dujy_col and f_col:
+        df['_mjd_floor'] = np.floor(pd.to_numeric(df[mjd_col], errors='coerce'))
+        w            = 1.0 / pd.to_numeric(df[dujy_col], errors='coerce') ** 2
+        df['_w']     = w
+        df['_w_ujy'] = w * pd.to_numeric(df[ujy_col], errors='coerce')
+        g    = df.groupby([f_col, '_mjd_floor'], sort=False)
+        base = g.first().copy()
+        w_s  = g['_w'].sum()
+        base[ujy_col]  = g['_w_ujy'].sum() / w_s
+        base[dujy_col] = np.sqrt(1.0 / w_s)
+        # Recalcular m y dm coherentes con el flujo promediado
+        m_col  = col_map.get('m')
+        dm_col = col_map.get('dm')
+        ujy_avg  = base[ujy_col]
+        dujy_avg = base[dujy_col]
+        if m_col and m_col in base.columns:
+            base[m_col] = (np.sign(ujy_avg) *
+                           (23.9 - 2.5 * np.log10(ujy_avg.abs().clip(lower=1e-10))))
+        if dm_col and dm_col in base.columns:
+            base[dm_col] = ((2.5 / np.log(10)) *
+                            dujy_avg / ujy_avg.abs().clip(lower=1e-10))
+        base[mjd_col]  = base.index.get_level_values('_mjd_floor')
+        df = base.reset_index(drop=False).drop(
+            columns=['_mjd_floor', '_w', '_w_ujy'], errors='ignore')
+
+    #4. Corte SNR sobre datos promediados
+    if not df.empty and ujy_col and dujy_col:
+        ujy  = pd.to_numeric(df[ujy_col],  errors='coerce')
+        dujy = pd.to_numeric(df[dujy_col], errors='coerce')
+        df = df[(dujy > 0) & (ujy.abs() / dujy >= 3.0)].copy()
+
+    return df
 
 
 #Checkpoint
@@ -746,7 +781,7 @@ Use cases:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # 1. Cargar coordenadas
-    print("\nLoading objects from obj_ztf_*.parquet")
+    print(f"\nLoading objects from {args.obj_glob}")
     feat_dir_arg = Path(args.feat_dir) if args.feat_dir else None
     coords = load_object_coords(
         args.obj_glob,

@@ -846,6 +846,8 @@ else:
         ])
         obj_cand = object_info[object_info.index.isin(oids_candidatos)]
      
+        det_cand_raw.index.name  = 'oid'
+        ndet_cand_raw.index.name = 'oid'
         det_cand_pp, ndet_cand_pp = preprocess(
             LSSTLightcurvePreprocessor(stream=False),
             det_cand_raw, ndet_cand_raw, obj_cand)

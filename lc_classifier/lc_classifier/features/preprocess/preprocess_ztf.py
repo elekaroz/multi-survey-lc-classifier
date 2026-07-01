@@ -127,6 +127,7 @@ class ZTFLightcurvePreprocessor(GenericPreprocessor):
         else:
             detections = grouped_detections.apply(
                 magpsf_ml_not_stream, objects_table=objects)
+        detections.index.name = 'oid'  # groupby.apply puede perder el index.name
         return detections
 
     def preprocess(self, dataframe, objects=None):
@@ -410,6 +411,7 @@ class ZTFLightcurvePreprocessor3bands(GenericPreprocessor):
         else:
             detections = grouped_detections.apply(
                 magpsf_ml_not_stream, objects_table=objects)
+        detections.index.name = 'oid'  # groupby.apply puede perder el index.name
         return detections
 
     def preprocess(self, dataframe, objects=None):
@@ -578,6 +580,7 @@ class LSSTLightcurvePreprocessor(GenericPreprocessor):
         else:
             detections = grouped_detections.apply(
                 magpsf_ml_not_stream, objects_table=objects)
+        detections.index.name = 'oid'  # groupby.apply puede perder el index.name
         return detections
 
     def preprocess(self, dataframe, objects=None):
@@ -864,4 +867,3 @@ class ATLASLightcurvePreprocessor(GenericPreprocessor):
  
     def rename_columns_detections(self, detections):
         return detections.rename(columns=self.column_translation, errors='ignore')
- 

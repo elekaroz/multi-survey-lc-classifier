@@ -519,7 +519,7 @@ def classify(
 
     # Per-model calibrated probabilities (for inspection).
     for name in loaded_models:
-        had_feat = model_had_features[name
+        had_feat = model_had_features[name]
         for cl in LABEL_ORDER:
             col = f'p_{cl}_model{name}'
             vals = base_proba[name][cl].copy()
